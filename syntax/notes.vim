@@ -41,6 +41,8 @@ highlight def link notesListNumber Comment
 if xolox#notes#unicode_enabled()
   syntax match notesDoubleQuoted /“.\{-}”/
   syntax match notesSingleQuoted /‘.\{-}’/
+  " Highlight inline code snippets surrounded with backticks
+  syntax match notesSingleQuoted /`.\{-}`/
 else
   syntax match notesDoubleQuoted /".\{-}"/
   syntax match notesSingleQuoted /`.\{-}'/
@@ -108,6 +110,10 @@ highlight def link notesFixMe WarningMsg
 highlight def link notesDoneItem Comment
 highlight def link notesDoneMarker Question
 highlight def link notesInProgress Directory
+
+" Highlight todo items in the form: [ ] todo item; [x] done item. 
+syntax match notesTodo /\[\s\]/
+syntax match notesDoneItem /^\(\s\+\).*\[x\].*\(\n\1\s.*\)*/ contains=@notesInline
 
 " Highlight Vim command names in :this notation. {{{2
 syntax match notesVimCmd /:\w\+\(!\|\>\)/ contains=ALLBUT,@Spell
