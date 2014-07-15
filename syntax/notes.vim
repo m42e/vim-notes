@@ -88,7 +88,7 @@ endif
 syntax match notesEmailAddr /\<\w[^@ \t\r]*\w@\w[^@ \t\r]\+\w\>/
 syntax cluster notesInline add=notesEmailAddr
 highlight def link notesEmailAddr notesSubtleURL
-syntax match notesUnixPath /\k\@<![\/~]\S\+\(\/\|[^ [:punct:]]\)/
+syntax match notesUnixPath /\k\@<![\/~$]\S\+\(\/\|[^ [:punct:]]\)/
 syntax cluster notesInline add=notesUnixPath
 highlight def link notesUnixPath Directory
 syntax match notesPathLnum /:\d\+/ contained containedin=notesUnixPath
@@ -96,6 +96,8 @@ highlight def link notesPathLnum Comment
 syntax match notesWindowsPath /\k\@<![A-Za-z]:\S\+\([\\/]\|[^ [:punct:]]\)/
 syntax cluster notesInline add=notesWindowsPath
 highlight def link notesWindowsPath Directory
+
+" Highlight paths containing BASH variables. 
 
 " Highlight TODO, DONE, FIXME and XXX markers. {{{2
 syntax match notesTodo /\<TODO\>/
