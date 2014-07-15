@@ -1,12 +1,12 @@
 ﻿" Vim auto-load script
 " Author: Peter Odding <peter@peterodding.com>
-" Last Change: September 2, 2013
+" Last Change: July 7, 2014
 " URL: http://peterodding.com/code/vim/notes/
 
 " Note: This file is encoded in UTF-8 including a byte order mark so
 " that Vim loads the script using the right encoding transparently.
 
-let g:xolox#notes#version = '0.23.4'
+let g:xolox#notes#version = '0.26'
 let g:xolox#notes#url_pattern = '\<\(mailto:\|javascript:\|\w\{3,}://\)\(\S*\w\)\+/\?'
 let s:scriptdir = expand('<sfile>:p:h')
 
@@ -70,6 +70,10 @@ function! xolox#notes#init() " {{{1
     " Valid values are "no", "change_title", "rename_file" and "prompt".
     let g:notes_title_sync = 'prompt'
   endif
+  " Unicode is enabled by default if Vim's encoding is set to UTF-8.
+  if !exists('g:notes_unicode_enabled')
+    let g:notes_unicode_enabled = (&encoding == 'utf-8')
+  endif
   " Smart quotes and such are enabled by default.
   if !exists('g:notes_smart_quotes')
     let g:notes_smart_quotes = 1
@@ -95,6 +99,10 @@ function! xolox#notes#init() " {{{1
     else
       let g:notes_list_bullets = g:notes_ascii_bullets
     endif
+  endif
+  " Should note titles only match (be highlighted) on word boundaries?
+  if !exists('g:notes_word_boundaries')
+    let g:notes_word_boundaries = 0
   endif
 endfunction
 
@@ -136,7 +144,7 @@ function! xolox#notes#edit(bang, title) abort " {{{1
     if fname != ''
       call xolox#misc#msg#debug("notes.vim %s: Editing existing note: %s", g:xolox#notes#version, fname)
       execute 'edit' . a:bang fnameescape(fname)
-      if !xolox#notes#unicode_enabled() && xolox#misc#path#equals(fnamemodify(fname, ':h'), g:notes_shadowdir)
+      if !xolox#notes#unicode_enabled() && xolox#notes#is_shadow()
         call s:transcode_utf8_latin1()
       endif
       call xolox#notes#set_filetype()
@@ -172,7 +180,7 @@ function! xolox#notes#check_sync_title() " {{{1
     let title = xolox#notes#current_title()
     let name_on_disk = xolox#misc#path#absolute(expand('%:p'))
     let name_from_title = xolox#notes#title_to_fname(title)
-    if !xolox#misc#path#equals(name_on_disk, name_from_title)
+    if !xolox#misc#path#equals(name_on_disk, name_from_title) && !xolox#notes#is_shadow()
       call xolox#misc#msg#debug("notes.vim %s: Filename (%s) doesn't match note title (%s)", g:xolox#notes#version, name_on_disk, name_from_title)
       let action = g:notes_title_sync
       if action == 'prompt' && empty(name_from_title)
@@ -242,6 +250,11 @@ function! s:get_visual_selection()
   return join(lines, ' ')
 endfunction
 
+function! xolox#notes#is_shadow() " {{{1
+  " Check if the current note is a shadow note.
+  return xolox#misc#path#equals(expand('%:p:h'), g:notes_shadowdir)
+endfunction
+
 function! xolox#notes#edit_shadow() " {{{1
   " People using latin1 don't like the UTF-8 curly quotes and bullets used in
   " the predefined notes because there are no equivalent characters in latin1,
@@ -253,10 +266,6 @@ function! xolox#notes#edit_shadow() " {{{1
   call xolox#notes#set_filetype()
 endfunction
 
-function! xolox#notes#unicode_enabled()
-  return &encoding == 'utf-8'
-endfunction
-
 function! s:transcode_utf8_latin1()
   let view = winsaveview()
   silent %s/\%xe2\%x80\%x98/`/eg
@@ -265,6 +274,12 @@ function! s:transcode_utf8_latin1()
   silent %s/\%xe2\%x80\%xa2/\*/eg
   setlocal nomodified
   call winrestview(view)
+endfunction
+
+function! xolox#notes#unicode_enabled() " {{{1
+  " Check if the `g:notes_unicode_enabled` option is set to true (1) and Vim's
+  " encoding is set to UTF-8.
+  return g:notes_unicode_enabled && &encoding == 'utf-8'
 endfunction
 
 function! xolox#notes#select(filter) " {{{1
@@ -465,6 +480,8 @@ function! xolox#notes#search(bang, input) " {{{1
     call xolox#misc#timer#stop("notes.vim %s: Searched notes in %s.", g:xolox#notes#version, starttime)
   catch /^Vim\%((\a\+)\)\=:E480/
     call xolox#misc#msg#warn("notes.vim %s: No matches", g:xolox#notes#version)
+  catch
+    call xolox#misc#msg#warn("notes.vim %s: Encountered error during search: %s (%s)", g:xolox#notes#version, v:exception, v:throwpoint)
   endtry
 endfunction
 
@@ -609,10 +626,10 @@ endfunction
 
 function! xolox#notes#buffer_is_note() " {{{2
   " Check whether the current buffer is a note (with the correct file type and path).
-  let bufpath = expand('%:p:h')
+  let buffer_directory = expand('%:p:h')
   if xolox#notes#filetype_is_note(&ft)
     for directory in xolox#notes#find_directories(1)
-      if xolox#misc#path#equals(bufpath, directory)
+      if xolox#misc#path#starts_with(buffer_directory, directory)
         return 1
       endif
     endfor
@@ -697,7 +714,9 @@ function! s:vimgrep_wrapper(bang, pattern, files) " {{{2
   try
     let ei_save = &eventignore
     set eventignore=syntax,bufread
-    execute 'vimgrep' . a:bang join(args)
+    let command = printf('vimgrep%s %s', a:bang, join(args))
+    call xolox#misc#msg#debug("notes.vim %s: Populating quick-fix window using command: %s", g:xolox#notes#version, command)
+    execute command
     call xolox#misc#timer#stop("notes.vim %s: Populated quick-fix window in %s.", g:xolox#notes#version, starttime)
   finally
     let &eventignore = ei_save
@@ -791,7 +810,7 @@ function! xolox#notes#get_fnames(include_shadow_notes) " {{{3
   if !s:have_cached_names
     let starttime = xolox#misc#timer#start()
     for directory in xolox#notes#find_directories(0)
-      let pattern = xolox#misc#path#merge(directory, '*')
+      let pattern = xolox#misc#path#merge(directory, '**')
       let listing = glob(xolox#misc#path#absolute(pattern))
       call extend(s:cached_fnames, filter(split(listing, '\n'), 'filereadable(v:val)'))
     endfor
@@ -880,11 +899,11 @@ endfunction
 
 function! xolox#notes#select_directory() " {{{3
   " Pick the best suited directory for creating a new note.
-  let bufdir = expand('%:p:h')
+  let buffer_directory = expand('%:p:h')
   let notes_directories = xolox#notes#find_directories(0)
   for directory in notes_directories
-    if xolox#misc#path#equals(bufdir, directory)
-      return directory
+    if xolox#misc#path#starts_with(buffer_directory, directory)
+      return buffer_directory
     endif
   endfor
   return notes_directories[0]
@@ -895,10 +914,10 @@ function! xolox#notes#cache_add(filename, title) " {{{3
   let filename = xolox#misc#path#absolute(a:filename)
   if index(s:cached_fnames, filename) == -1
     call add(s:cached_fnames, filename)
-    if !empty(s:cached_titles)
+    if s:have_cached_titles
       call add(s:cached_titles, a:title)
     endif
-    if !empty(s:cached_pairs)
+    if s:have_cached_items
       let s:cached_pairs[filename] = a:title
     endif
     let s:cache_mtime = localtime()
@@ -911,10 +930,10 @@ function! xolox#notes#cache_del(filename) " {{{3
   let index = index(s:cached_fnames, filename)
   if index >= 0
     call remove(s:cached_fnames, index)
-    if !empty(s:cached_titles)
+    if s:have_cached_titles
       call remove(s:cached_titles, index)
     endif
-    if !empty(s:cached_pairs)
+    if s:have_cached_items
       call remove(s:cached_pairs, filename)
     endif
     let s:cache_mtime = localtime()
@@ -1067,7 +1086,11 @@ function! xolox#notes#highlight_names(force) " {{{3
     if hlexists('notesName')
       syntax clear notesName
     endif
-    execute 'syntax match notesName /\c\%>1l\%(' . escape(join(titles, '\|'), '/') . '\)/'
+    let pattern = '\%(' . escape(join(titles, '\|'), '/') . '\)'
+    if g:notes_word_boundaries
+      let pattern = '\<' . pattern . '\>'
+    endif
+    execute 'syntax match notesName /\c\%>1l' . pattern . '/'
     let b:notes_names_last_highlighted = localtime()
     call xolox#misc#timer#stop("notes.vim %s: Highlighted note names in %s.", g:xolox#notes#version, starttime)
   endif
@@ -1126,6 +1149,9 @@ function! s:syntax_include(filetype)
   try
     execute 'syntax include' grouplistname 'syntax/' . a:filetype . '.vim'
     execute 'syntax include' grouplistname 'after/syntax/' . a:filetype . '.vim'
+  catch /E403/
+    " Ignore errors about syntax scripts that can't be loaded more than once.
+    " See also: https://github.com/xolox/vim-notes/issues/68
   catch /E484/
     " Ignore missing scripts.
   endtry

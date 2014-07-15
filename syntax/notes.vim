@@ -1,6 +1,6 @@
 ﻿" Vim syntax script
 " Author: Peter Odding <peter@peterodding.com>
-" Last Change: July 16, 2013
+" Last Change: July 7, 2014
 " URL: http://peterodding.com/code/vim/notes/
 
 " Note: This file is encoded in UTF-8 including a byte order mark so
@@ -39,16 +39,24 @@ highlight def link notesListNumber Comment
 
 " Highlight quoted fragments. {{{2
 if xolox#notes#unicode_enabled()
-  syntax match notesDoubleQuoted /“.\{-}”/
-  syntax match notesSingleQuoted /‘.\{-}’/
-  " Highlight inline code snippets surrounded with backticks
-  syntax match notesSingleQuoted /`.\{-}`/
+  syntax match notesDoubleQuoted /\w\@<!“.\{-}”\w\@!/
+  syntax match notesSingleQuoted /\w\@<!‘.\{-}’\w\@!/
 else
-  syntax match notesDoubleQuoted /".\{-}"/
-  syntax match notesSingleQuoted /`.\{-}'/
+  syntax match notesDoubleQuoted /\w\@<!".\{-}"\w\@!/
+  syntax match notesSingleQuoted /\w\@<!`.\{-}'\w\@!/
 endif
 highlight def link notesSingleQuoted Special
 highlight def link notesDoubleQuoted String
+
+" Highlight inline code fragments (same as Markdown syntax). {{{2
+if has('conceal')
+  syntax region notesInlineCode matchgroup=notesInlineCodeMarker start=/`/ end=/`/ concealends
+  highlight link notesItalicMarker notesInlineCodeMarker
+else
+  syntax match notesInlineCode /`[^`]*`/
+endif
+syntax cluster notesInline add=notesInlineCode
+highlight def link notesInlineCode Special
 
 " Highlight text emphasized in italic font. {{{2
 if has('conceal')
@@ -120,7 +128,7 @@ syntax match notesDoneItem /^\(\s\+\).*\[x\].*\(\n\1\s.*\)*/ contains=@notesInli
 syntax match notesDoneItem /^\(\s\+\).*\[n\].*\(\n\1\s.*\)*/ contains=@notesInline
 
 " Highlight Vim command names in :this notation. {{{2
-syntax match notesVimCmd /:\w\+\(!\|\>\)/ contains=ALLBUT,@Spell
+syntax match notesVimCmd /\w\@<!:\w\+\(!\|\>\)/ contains=ALLBUT,@Spell
 syntax cluster notesInline add=notesVimCmd
 highlight def link notesVimCmd Special
 

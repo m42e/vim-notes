@@ -65,6 +65,20 @@ When you rename a file in your notes directory but don't change the title, the p
 
 If you set this option to the string `'no'` this feature will be completely disabled. If you set it to `'change_title'` it will automatically change the title to match the filename. If you set it to `'rename_file'` it will automatically rename the file on disk to match the title.
 
+This option only concerns the behavior of vim-notes when you open an existing note; it does not change the fact that when you change a note's title in Vim and then save the note, the file is renamed (this is a fundamental feature of the vim-notes plug-in).
+
+### The `g:notes_word_boundaries` option
+
+Old versions of the notes plug-in would highlight note titles without considering word boundaries. This is still the default behavior but the plug-in can now be told to respect word boundaries by changing this option from its default:
+
+    :let g:notes_word_boundaries = 1
+
+### The `g:notes_unicode_enabled` option
+
+By default the vim-notes plug-in uses Unicode characters (e.g. list bullets, arrows, etc.) when Vim's ['encoding'] [enc] option is set to UTF-8. If you don't want Unicode characters in your notes (regardless of the ['encoding'] [enc] option) you can set this option to false (0):
+
+    :let g:notes_unicode_enabled = 0
+
 ### The `g:notes_smart_quotes` option
 
 By default the notes plug-in automatically performs several substitutions on the text you type in insert mode, for example regular quote marks are replaced with curly quotes. The full list of substitutions can be found below in the documentation on mappings. If you don't want the plug-in to perform these substitutions, you can set this option to zero like this:
@@ -323,8 +337,8 @@ If you have questions, bug reports, suggestions, etc. the author can be contacte
 
 ## License
 
-This software is licensed under the [MIT license] [mit].  
-© 2013 Peter Odding &lt;<peter@peterodding.com>&gt;.
+This software is licensed under the [MIT license] [mit].
+© 2014 Peter Odding &lt;<peter@peterodding.com>&gt;.
 
 
 [ctrlwf]: http://vimdoc.sourceforge.net/htmldoc/windows.html#CTRL-W_f
@@ -332,6 +346,7 @@ This software is licensed under the [MIT license] [mit].
 [download-misc]: http://peterodding.com/code/vim/downloads/misc.zip
 [download-notes]: http://peterodding.com/code/vim/downloads/notes.zip
 [edit]: http://vimdoc.sourceforge.net/htmldoc/editing.html#:edit
+[enc]: http://vimdoc.sourceforge.net/htmldoc/options.html#'encoding'
 [gf]: http://vimdoc.sourceforge.net/htmldoc/editing.html#gf
 [github-misc]: http://github.com/xolox/vim-misc
 [github-notes]: http://github.com/xolox/vim-notes
