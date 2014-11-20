@@ -406,7 +406,7 @@ function! xolox#notes#save() abort " {{{1
     endif
     " Trigger the BufWritePre automatic command event because it provides
     " a very unobtrusive way for users to extend the vim-notes plug-in.
-    execute 'doautocmd BufWritePre' fnameescape(newpath)
+    silent execute 'doautocmd BufWritePre' fnameescape(newpath)
     " Actually save the user's buffer to the file.
     let bang = v:cmdbang ? '!' : ''
     execute 'saveas' . bang fnameescape(newpath)
@@ -433,7 +433,7 @@ function! xolox#notes#save() abort " {{{1
     call xolox#notes#cache_add(newpath, title)
     " Trigger the BufWritePost automatic command event because it provides
     " a very unobtrusive way for users to extend the vim-notes plug-in.
-    execute 'doautocmd BufWritePost' fnameescape(newpath)
+    silent execute 'doautocmd BufWritePost' fnameescape(newpath)
   endif
 endfunction
 

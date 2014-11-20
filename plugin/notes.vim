@@ -57,9 +57,9 @@ augroup PluginNotes
   " to notes (which is IMHO better than always showing the E325 prompt).
   au BufReadCmd note:* nested call xolox#notes#shortcut()
   " Automatic commands to read/write notes (used for automatic renaming).
-  exe 'au BufReadCmd' xolox#notes#autocmd_pattern(g:notes_shadowdir, 0) 'call xolox#notes#edit_shadow()'
+  silent exe 'au BufReadCmd' xolox#notes#autocmd_pattern(g:notes_shadowdir, 0) 'call xolox#notes#edit_shadow()'
   for s:directory in xolox#notes#find_directories(0)
-    exe 'au BufWriteCmd' xolox#notes#autocmd_pattern(s:directory, 1) 'call xolox#notes#save()'
+    silent exe 'au BufWriteCmd' xolox#notes#autocmd_pattern(s:directory, 1) 'call xolox#notes#save()'
   endfor
   unlet s:directory
 augroup END
